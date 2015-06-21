@@ -1,1 +1,0 @@
-.\src\.nuget\NuGet.exe pack .\src\MediatR\MediatR.nuspec

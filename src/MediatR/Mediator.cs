@@ -6,49 +6,61 @@
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Defines a mediator to encapsulate request/response and publishing interaction patterns
+    /// Defines a mediator to encapsulate sending commands, query/response and publishing events
     /// </summary>
     public interface IMediator
     {
         /// <summary>
-        /// Send a request to a single handler
+        /// Send a command to a single handler
+        /// </summary>
+        /// <param name="command">Command object</param>
+        void Send(ICommand command);
+
+        /// <summary>
+        /// Asynchronously send a command to a single handler 
+        /// </summary>
+        /// <param name="command">Command object</param>
+        Task SendAsync(IAsyncCommand command);
+
+        /// <summary>
+        /// Send a query to a single handler
         /// </summary>
         /// <typeparam name="TResponse">Response type</typeparam>
-        /// <param name="request">Request object</param>
+        /// <param name="query">Query object</param>
         /// <returns>Response</returns>
-        TResponse Send<TResponse>(IRequest<TResponse> request);
+        TResponse Send<TResponse>(IQuery<TResponse> query);
 
         /// <summary>
-        /// Asynchronously send a request to a single handler 
+        /// Asynchronously send a query to a single handler 
         /// </summary>
         /// <typeparam name="TResponse">Response type</typeparam>
-        /// <param name="request">Request object</param>
+        /// <param name="query">Query object</param>
         /// <returns>A task that represents the send operation. The task result contains the handler response</returns>
-        Task<TResponse> SendAsync<TResponse>(IAsyncRequest<TResponse> request);
+        Task<TResponse> SendAsync<TResponse>(IAsyncQuery<TResponse> query);
 
         /// <summary>
-        /// Send a notification to multiple handlers
+        /// Send an event to multiple handlers
         /// </summary>
-        /// <param name="notification">Notification object</param>
-        void Publish(INotification notification);
+        /// <param name="event">Event object</param>
+        void Publish(IEvent @event);
 
         /// <summary>
-        /// Asynchronously send a notification to multiple handlers
+        /// Asynchronously send an event to multiple handlers
         /// </summary>
-        /// <param name="notification">Notification object</param>
+        /// <param name="event">Event object</param>
         /// <returns>A task that represents the publish operation.</returns>
-        Task PublishAsync(IAsyncNotification notification);
+        Task PublishAsync(IAsyncEvent @event);
     }
 
     /// <summary>
-    /// Factory method for creating single instances. Used to build instances of <see cref="IRequestHandler{TRequest,TResponse}"/> and <see cref="IAsyncRequestHandler{TRequest,TResponse}"/>
+    /// Factory method for creating single instances. Used to build instances of <see cref="IQueryHandler{TQuery,TResponse}"/> and <see cref="IAsyncQueryHandler{TQuery,TResponse}"/>
     /// </summary>
     /// <param name="serviceType">Type of service to resolve</param>
     /// <returns>An instance of type <paramref name="serviceType" /></returns>
     public delegate object SingleInstanceFactory(Type serviceType);
 
     /// <summary>
-    /// Factory method for creating multiple instances. Used to build instances of <see cref="INotificationHandler{TNotification}"/> and <see cref="IAsyncNotificationHandler{TNotification}"/>
+    /// Factory method for creating multiple instances. Used to build instances of <see cref="IEventHandler{TEvent}"/> and <see cref="IAsyncEventHandler{TEvent}"/>
     /// </summary>
     /// <param name="serviceType">Type of service to resolve</param>
     /// <returns>An enumerable of instances of type <paramref name="serviceType" /></returns>
@@ -68,189 +80,285 @@
             _multiInstanceFactory = multiInstanceFactory;
         }
 
-        public TResponse Send<TResponse>(IRequest<TResponse> request)
+        public void Send(ICommand command)
         {
-            var defaultHandler = GetHandler(request);
+            var defaultHandler = GetCommandHandler(command);
 
-            TResponse result = defaultHandler.Handle(request);
+            defaultHandler.Handle(command);
+        }
+
+        public async Task SendAsync(IAsyncCommand command)
+        {
+            var defaultHandler = GetCommandHandler(command);
+
+            await defaultHandler.Handle(command);
+        }
+
+        public TResponse Send<TResponse>(IQuery<TResponse> query)
+        {
+            var defaultHandler = GetQueryHandler(query);
+
+            TResponse result = defaultHandler.Handle(query);
 
             return result;
         }
 
-        public async Task<TResponse> SendAsync<TResponse>(IAsyncRequest<TResponse> request)
+        public async Task<TResponse> SendAsync<TResponse>(IAsyncQuery<TResponse> query)
         {
-            var defaultHandler = GetHandler(request);
+            var defaultHandler = GetQueryHandler(query);
 
-            TResponse result = await defaultHandler.Handle(request);
+            TResponse result = await defaultHandler.Handle(query);
 
             return result;
         }
 
-        public void Publish(INotification notification)
+        public void Publish(IEvent @event)
         {
-            var notificationHandlers = GetNotificationHandlers(notification);
+            var eventHandlers = GetEventHandlers(@event);
 
-            foreach (var handler in notificationHandlers)
+            foreach (var handler in eventHandlers)
             {
-                handler.Handle(notification);
+                handler.Handle(@event);
             }
         }
 
-        public async Task PublishAsync(IAsyncNotification notification)
+        public async Task PublishAsync(IAsyncEvent @event)
         {
-            var notificationHandlers = GetAsyncNotificationHandlers(notification);
+            var eventHandlers = GetAsyncEventHandlers(@event);
 
-            foreach (var handler in notificationHandlers)
+            foreach (var handler in eventHandlers)
             {
-                await handler.Handle(notification);
+                await handler.Handle(@event);
             }
         }
 
         private static InvalidOperationException BuildException(object message, Exception inner = null)
         {
-            return new InvalidOperationException("Handler was not found for request of type " + message.GetType() + ".\r\nContainer or service locator not configured properly or handlers not registered with your container.", inner);
+            return new InvalidOperationException("Handler was not found for query of type " + message.GetType() + ".\r\nContainer or service locator not configured properly or handlers not registered with your container.", inner);
         }
 
-        private RequestHandler<TResponse> GetHandler<TResponse>(IRequest<TResponse> request)
+        private QueryHandler<TResponse> GetQueryHandler<TResponse>(IQuery<TResponse> query)
         {
-            var handlerType = typeof(IRequestHandler<,>).MakeGenericType(request.GetType(), typeof(TResponse));
-            var wrapperType = typeof(RequestHandler<,>).MakeGenericType(request.GetType(), typeof(TResponse));
+            var handlerType = typeof(IQueryHandler<,>).MakeGenericType(query.GetType(), typeof(TResponse));
+            var wrapperType = typeof(QueryHandler<,>).MakeGenericType(query.GetType(), typeof(TResponse));
             object handler;
             try
             {
                 handler = _singleInstanceFactory(handlerType);
 
                 if (handler == null)
-                    throw BuildException(request);
+                    throw BuildException(query);
             }
             catch (Exception e)
             {
-                throw BuildException(request, e);
+                throw BuildException(query, e);
             }
             var wrapperHandler = Activator.CreateInstance(wrapperType, handler);
-            return (RequestHandler<TResponse>)wrapperHandler;
+            return (QueryHandler<TResponse>)wrapperHandler;
         }
 
-        private AsyncRequestHandler<TResponse> GetHandler<TResponse>(IAsyncRequest<TResponse> request)
+        private AsyncQueryHandler<TResponse> GetQueryHandler<TResponse>(IAsyncQuery<TResponse> query)
         {
-            var handlerType = typeof(IAsyncRequestHandler<,>).MakeGenericType(request.GetType(), typeof(TResponse));
-            var wrapperType = typeof(AsyncRequestHandler<,>).MakeGenericType(request.GetType(), typeof(TResponse));
+            var handlerType = typeof(IAsyncQueryHandler<,>).MakeGenericType(query.GetType(), typeof(TResponse));
+            var wrapperType = typeof(AsyncQueryHandler<,>).MakeGenericType(query.GetType(), typeof(TResponse));
             object handler;
             try
             {
                 handler = _singleInstanceFactory(handlerType);
 
                 if (handler == null)
-                    throw BuildException(request);
+                    throw BuildException(query);
             }
             catch (Exception e)
             {
-                throw BuildException(request, e);
+                throw BuildException(query, e);
             }
 
             var wrapperHandler = Activator.CreateInstance(wrapperType, handler);
-            return (AsyncRequestHandler<TResponse>)wrapperHandler;
+            return (AsyncQueryHandler<TResponse>)wrapperHandler;
         }
 
-        private IEnumerable<NotificationHandler> GetNotificationHandlers(INotification notification)
+        private CommandHandler GetCommandHandler(ICommand command)
         {
-            var handlerType = typeof(INotificationHandler<>).MakeGenericType(notification.GetType());
-            var wrapperType = typeof(NotificationHandler<>).MakeGenericType(notification.GetType());
+            var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
+            var wrapperType = typeof(CommandHandler<>).MakeGenericType(command.GetType());
+            object handler;
+            try
+            {
+                handler = _singleInstanceFactory(handlerType);
+
+                if (handler == null)
+                    throw BuildException(command);
+            }
+            catch (Exception e)
+            {
+                throw BuildException(command, e);
+            }
+            var wrapperHandler = Activator.CreateInstance(wrapperType, handler);
+            return (CommandHandler)wrapperHandler;
+        }
+
+        private AsyncCommandHandler GetCommandHandler(IAsyncCommand command)
+        {
+            var handlerType = typeof(IAsyncCommandHandler<>).MakeGenericType(command.GetType());
+            var wrapperType = typeof(AsyncCommandHandler<>).MakeGenericType(command.GetType());
+            object handler;
+            try
+            {
+                handler = _singleInstanceFactory(handlerType);
+
+                if (handler == null)
+                    throw BuildException(command);
+            }
+            catch (Exception e)
+            {
+                throw BuildException(command, e);
+            }
+
+            var wrapperHandler = Activator.CreateInstance(wrapperType, handler);
+            return (AsyncCommandHandler)wrapperHandler;
+        }
+
+        private IEnumerable<EventHandler> GetEventHandlers(IEvent @event)
+        {
+            var handlerType = typeof(IEventHandler<>).MakeGenericType(@event.GetType());
+            var wrapperType = typeof(EventHandler<>).MakeGenericType(@event.GetType());
 
             var handlers = _multiInstanceFactory(handlerType);
 
-            return handlers.Select(handler => (NotificationHandler) Activator.CreateInstance(wrapperType, handler)).ToList();
+            return handlers.Select(handler => (EventHandler)Activator.CreateInstance(wrapperType, handler)).ToList();
         }
 
-        private IEnumerable<AsyncNotificationHandler> GetAsyncNotificationHandlers(IAsyncNotification notification)
+        private IEnumerable<AsyncEventHandler> GetAsyncEventHandlers(IAsyncEvent @event)
         {
-            var handlerType = typeof(IAsyncNotificationHandler<>).MakeGenericType(notification.GetType());
-            var wrapperType = typeof(AsyncNotificationHandler<>).MakeGenericType(notification.GetType());
+            var handlerType = typeof(IAsyncEventHandler<>).MakeGenericType(@event.GetType());
+            var wrapperType = typeof(AsyncEventHandler<>).MakeGenericType(@event.GetType());
 
             var handlers = _multiInstanceFactory(handlerType);
 
-            return handlers.Select(handler => (AsyncNotificationHandler)Activator.CreateInstance(wrapperType, handler)).ToList();
+            return handlers.Select(handler => (AsyncEventHandler)Activator.CreateInstance(wrapperType, handler)).ToList();
         }
 
-        private abstract class RequestHandler<TResult>
+        private abstract class CommandHandler
         {
-            public abstract TResult Handle(IRequest<TResult> message);
+            public abstract void Handle(ICommand message);
         }
 
-        private class RequestHandler<TCommand, TResult> : RequestHandler<TResult> where TCommand : IRequest<TResult>
+        private class CommandHandler<TCommand> : CommandHandler where TCommand : ICommand
         {
-            private readonly IRequestHandler<TCommand, TResult> _inner;
+            private readonly ICommandHandler<TCommand> _inner;
 
-            public RequestHandler(IRequestHandler<TCommand, TResult> inner)
+            public CommandHandler(ICommandHandler<TCommand> inner)
             {
                 _inner = inner;
             }
 
-            public override TResult Handle(IRequest<TResult> message)
+            public override void Handle(ICommand message)
+            {
+                _inner.Handle((TCommand)message);
+            }
+        }
+
+        private abstract class QueryHandler<TResult>
+        {
+            public abstract TResult Handle(IQuery<TResult> message);
+        }
+
+        private class QueryHandler<TQuery, TResult> : QueryHandler<TResult> where TQuery : IQuery<TResult>
+        {
+            private readonly IQueryHandler<TQuery, TResult> _inner;
+
+            public QueryHandler(IQueryHandler<TQuery, TResult> inner)
+            {
+                _inner = inner;
+            }
+
+            public override TResult Handle(IQuery<TResult> message)
+            {
+                return _inner.Handle((TQuery)message);
+            }
+        }
+
+        private abstract class EventHandler
+        {
+            public abstract void Handle(IEvent message);
+        }
+
+        private class EventHandler<TEvent> : EventHandler where TEvent : IEvent
+        {
+            private readonly IEventHandler<TEvent> _inner;
+
+            public EventHandler(IEventHandler<TEvent> inner)
+            {
+                _inner = inner;
+            }
+
+            public override void Handle(IEvent message)
+            {
+                _inner.Handle((TEvent)message);
+            }
+        }
+
+        private abstract class AsyncCommandHandler
+        {
+            public abstract Task Handle(IAsyncCommand message);
+        }
+
+        private class AsyncCommandHandler<TCommand> : AsyncCommandHandler
+            where TCommand : IAsyncCommand
+        {
+            private readonly IAsyncCommandHandler<TCommand> _inner;
+
+            public AsyncCommandHandler(IAsyncCommandHandler<TCommand> inner)
+            {
+                _inner = inner;
+            }
+
+            public override Task Handle(IAsyncCommand message)
             {
                 return _inner.Handle((TCommand)message);
             }
         }
 
-        private abstract class NotificationHandler
+        private abstract class AsyncQueryHandler<TResult>
         {
-            public abstract void Handle(INotification message);
+            public abstract Task<TResult> Handle(IAsyncQuery<TResult> message);
         }
 
-        private class NotificationHandler<TNotification> : NotificationHandler where TNotification : INotification
+        private class AsyncQueryHandler<TQuery, TResult> : AsyncQueryHandler<TResult>
+            where TQuery : IAsyncQuery<TResult>
         {
-            private readonly INotificationHandler<TNotification> _inner;
+            private readonly IAsyncQueryHandler<TQuery, TResult> _inner;
 
-            public NotificationHandler(INotificationHandler<TNotification> inner)
+            public AsyncQueryHandler(IAsyncQueryHandler<TQuery, TResult> inner)
             {
                 _inner = inner;
             }
 
-            public override void Handle(INotification message)
+            public override Task<TResult> Handle(IAsyncQuery<TResult> message)
             {
-                _inner.Handle((TNotification)message);
+                return _inner.Handle((TQuery)message);
             }
         }
 
-        private abstract class AsyncRequestHandler<TResult>
+        private abstract class AsyncEventHandler
         {
-            public abstract Task<TResult> Handle(IAsyncRequest<TResult> message);
+            public abstract Task Handle(IAsyncEvent message);
         }
 
-        private class AsyncRequestHandler<TCommand, TResult> : AsyncRequestHandler<TResult>
-            where TCommand : IAsyncRequest<TResult>
+        private class AsyncEventHandler<TEvent> : AsyncEventHandler
+            where TEvent : IAsyncEvent
         {
-            private readonly IAsyncRequestHandler<TCommand, TResult> _inner;
+            private readonly IAsyncEventHandler<TEvent> _inner;
 
-            public AsyncRequestHandler(IAsyncRequestHandler<TCommand, TResult> inner)
+            public AsyncEventHandler(IAsyncEventHandler<TEvent> inner)
             {
                 _inner = inner;
             }
 
-            public override Task<TResult> Handle(IAsyncRequest<TResult> message)
+            public override Task Handle(IAsyncEvent message)
             {
-                return _inner.Handle((TCommand)message);
-            }
-        }
-
-        private abstract class AsyncNotificationHandler
-        {
-            public abstract Task Handle(IAsyncNotification message);
-        }
-
-        private class AsyncNotificationHandler<TNotification> : AsyncNotificationHandler
-            where TNotification : IAsyncNotification
-        {
-            private readonly IAsyncNotificationHandler<TNotification> _inner;
-
-            public AsyncNotificationHandler(IAsyncNotificationHandler<TNotification> inner)
-            {
-                _inner = inner;
-            }
-
-            public override Task Handle(IAsyncNotification message)
-            {
-                return _inner.Handle((TNotification)message);
+                return _inner.Handle((TEvent)message);
             }
         }
     }

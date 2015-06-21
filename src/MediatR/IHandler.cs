@@ -3,106 +3,91 @@
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Defines a handler for a request
+    /// Defines a handler for a query
     /// </summary>
-    /// <typeparam name="TRequest">The type of request being handled</typeparam>
+    /// <typeparam name="TQuery">The type of query being handled</typeparam>
     /// <typeparam name="TResponse">The type of response from the handler</typeparam>
-    public interface IRequestHandler<in TRequest, out TResponse>
-        where TRequest : IRequest<TResponse>
+    public interface IQueryHandler<in TQuery, out TResponse>
+        where TQuery : IQuery<TResponse>
     {
         /// <summary>
-        /// Handles a request
+        /// Handles a query
         /// </summary>
-        /// <param name="message">The request message</param>
-        /// <returns>Response from the request</returns>
-        TResponse Handle(TRequest message);
+        /// <param name="message">The query message</param>
+        /// <returns>Response from the query</returns>
+        TResponse Handle(TQuery message);
     }
 
     /// <summary>
-    /// Defines an asynchronous handler for a request
+    /// Defines an asynchronous handler for a query
     /// </summary>
-    /// <typeparam name="TRequest">The type of request being handled</typeparam>
+    /// <typeparam name="TQuery">The type of query being handled</typeparam>
     /// <typeparam name="TResponse">The type of response from the handler</typeparam>
-    public interface IAsyncRequestHandler<in TRequest, TResponse>
-        where TRequest : IAsyncRequest<TResponse>
+    public interface IAsyncQueryHandler<in TQuery, TResponse>
+        where TQuery : IAsyncQuery<TResponse>
     {
         /// <summary>
-        /// Handles an asynchronous request
+        /// Handles an asynchronous query
         /// </summary>
-        /// <param name="message">The request message</param>
-        /// <returns>A task representing the response from the request</returns>
-        Task<TResponse> Handle(TRequest message);
+        /// <param name="message">The query message</param>
+        /// <returns>A task representing the response from the query</returns>
+        Task<TResponse> Handle(TQuery message);
     }
 
     /// <summary>
-    /// Helper class for requests that return a void response
+    /// Defines a handler for a command
     /// </summary>
-    /// <typeparam name="TMessage">The type of void request being handled</typeparam>
-    public abstract class RequestHandler<TMessage> : IRequestHandler<TMessage, Unit>
-        where TMessage : IRequest
+    /// <typeparam name="TCommand">The type of command being handled</typeparam>
+    public interface ICommandHandler<in TCommand>
+        where TCommand : ICommand
     {
-        public Unit Handle(TMessage message)
-        {
-            HandleCore(message);
-
-            return Unit.Value;
-        }
-
         /// <summary>
-        /// Handles a void request
+        /// Handles a command
         /// </summary>
-        /// <param name="message">The request message</param>
-        protected abstract void HandleCore(TMessage message);
+        /// <param name="message">The command message</param>
+        void Handle(TCommand message);
     }
 
     /// <summary>
-    /// Helper class for asynchronous requests that return a void response
+    /// Defines an asynchronous handler for a command
     /// </summary>
-    /// <typeparam name="TMessage">The type of void request being handled</typeparam>
-    public abstract class AsyncRequestHandler<TMessage> : IAsyncRequestHandler<TMessage, Unit>
-        where TMessage : IAsyncRequest
+    /// <typeparam name="TCommand">The type of command being handled</typeparam>
+    public interface IAsyncCommandHandler<in TCommand>
+        where TCommand : IAsyncCommand
     {
-        public async Task<Unit> Handle(TMessage message)
-        {
-            await HandleCore(message);
-
-            return Unit.Value;
-        }
-
         /// <summary>
-        /// Handles a void request
+        /// Handles an asynchronous command
         /// </summary>
-        /// <param name="message">The request message</param>
-        /// <returns>A task representing the void response from the request</returns>
-        protected abstract Task HandleCore(TMessage message);
+        /// <param name="message">The command message</param>
+        Task Handle(TCommand message);
     }
 
     /// <summary>
-    /// Defines a handler for a notification
+    /// Defines a handler for an event
     /// </summary>
-    /// <typeparam name="TNotification">The type of notification being handled</typeparam>
-    public interface INotificationHandler<in TNotification>
-        where TNotification : INotification
+    /// <typeparam name="TEvent">The type of event being handled</typeparam>
+    public interface IEventHandler<in TEvent>
+        where TEvent : IEvent
     {
         /// <summary>
-        /// Handles a notification
+        /// Handles an event
         /// </summary>
-        /// <param name="notification">The notification message</param>
-        void Handle(TNotification notification);
+        /// <param name="event">The event message</param>
+        void Handle(TEvent @event);
     }
 
     /// <summary>
-    /// Defines an asynchronous handler for a notification
+    /// Defines an asynchronous handler for an event
     /// </summary>
-    /// <typeparam name="TNotification">The type of notification being handled</typeparam>
-    public interface IAsyncNotificationHandler<in TNotification>
-        where TNotification : IAsyncNotification
+    /// <typeparam name="TEvent">The type of event being handled</typeparam>
+    public interface IAsyncEventHandler<in TEvent>
+        where TEvent : IAsyncEvent
     {
         /// <summary>
-        /// Handles an asynchronous notification
+        /// Handles an asynchronous event
         /// </summary>
-        /// <param name="notification">The notification message</param>
-        /// <returns>A task representing handling the notification</returns>
-        Task Handle(TNotification notification);
+        /// <param name="event">The event message</param>
+        /// <returns>A task representing handling the event</returns>
+        Task Handle(TEvent @event);
     }
 }

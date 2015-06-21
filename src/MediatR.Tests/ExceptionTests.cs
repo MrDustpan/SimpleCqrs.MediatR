@@ -9,13 +9,11 @@
     {
         private readonly IMediator _mediator;
 
-        public class Ping : IRequest<Pong> { }
+        public class Ping : IQuery<Pong> { }
         public class Pong {}
-        public class VoidPing : IRequest { }
-        public class Pinged : INotification { }
-        public class AsyncPing : IAsyncRequest<Pong> { }
-        public class AsyncVoidPing : IAsyncRequest { }
-        public class AsyncPinged : IAsyncNotification { }
+        public class Pinged : IEvent { }
+        public class AsyncPing : IAsyncQuery<Pong> { }
+        public class AsyncPinged : IAsyncEvent { }
 
         public ExceptionTests()
         {
@@ -33,11 +31,6 @@
             Should.Throw<InvalidOperationException>(() => _mediator.Send(new Ping()));
         }
 
-        public void Should_throw_for_void_send()
-        {
-            Should.Throw<InvalidOperationException>(() => _mediator.Send(new VoidPing()));
-        }
-
         public void Should_not_throw_for_publish()
         {
             Should.NotThrow(() => _mediator.Publish(new Pinged()));
@@ -48,16 +41,6 @@
             Should.Throw<InvalidOperationException>(() =>
             {
                 var response = _mediator.SendAsync(new AsyncPing());
-                Task.WaitAll(response);
-                return response;
-            });
-        }
-
-        public void Should_throw_for_async_void_send()
-        {
-            Should.Throw<InvalidOperationException>(() =>
-            {
-                var response = _mediator.SendAsync(new AsyncVoidPing());
                 Task.WaitAll(response);
                 return response;
             });

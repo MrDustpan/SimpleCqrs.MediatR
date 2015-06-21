@@ -1,34 +1,34 @@
 ﻿namespace MediatR
 {
     /// <summary>
-    /// Marker interface to represent a request with a void response
-    /// </summary>
-    public interface IRequest : IRequest<Unit> { }
-
-    /// <summary>
-    /// Marker interface to represent an asynchronous request with a void response
-    /// </summary>
-    public interface IAsyncRequest : IAsyncRequest<Unit> { }
-
-    /// <summary>
-    /// Marker interface to represent a request with a response
+    /// Marker interface to represent a query with a response
     /// </summary>
     /// <typeparam name="TResponse">Response type</typeparam>
-    public interface IRequest<out TResponse> { }
+    public interface IQuery<out TResponse> { }
 
     /// <summary>
-    /// Marker interface to represent an asynchronous request with a response
+    /// Marker interface to represent an asynchronous query with a response
     /// </summary>
     /// <typeparam name="TResponse">Response type</typeparam>
-    public interface IAsyncRequest<out TResponse> { }
+    public interface IAsyncQuery<out TResponse> { }
 
     /// <summary>
-    /// Marker interface to represent a notification
+    /// Marker interface to represent a command
     /// </summary>
-    public interface INotification { }
+    public interface ICommand { }
 
     /// <summary>
-    /// Marker interface to represent an asynchronous notification
+    /// Marker interface to represent an asynchronous command
     /// </summary>
-    public interface IAsyncNotification { }
+    public interface IAsyncCommand { }
+
+    /// <summary>
+    /// Marker interface to represent an event
+    /// </summary>
+    public interface IEvent { }
+
+    /// <summary>
+    /// Marker interface to represent an asynchronous event
+    /// </summary>
+    public interface IAsyncEvent { }
 }

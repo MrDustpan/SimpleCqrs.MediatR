@@ -58,21 +58,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncCommandTests.cs" />
     <Compile Include="ExceptionTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="AsyncSendTests.cs" />
-    <Compile Include="AsyncSendVoidTests.cs" />
-    <Compile Include="AsyncPublishTests.cs" />
-    <Compile Include="PublishTests.cs" />
-    <Compile Include="SendVoidTests.cs" />
-    <Compile Include="SendTests.cs" />
+    <Compile Include="AsyncQueryTests.cs" />
+    <Compile Include="AsyncEventTests.cs" />
+    <Compile Include="EventTests.cs" />
+    <Compile Include="CommandTests.cs" />
+    <Compile Include="QueryTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MediatR\MediatR.csproj">
-      <Project>{d0cdc351-9f10-4531-bdff-d9796487e9ce}</Project>
+      <Project>{190b8788-c109-4c50-a340-c15895884179}</Project>
       <Name>MediatR</Name>
     </ProjectReference>
   </ItemGroup>
